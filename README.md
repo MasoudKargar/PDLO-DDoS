@@ -192,3 +192,29 @@ The system supports various DDoS datasets:
 - SYN2020
 - DOS2019
 - Custom datasets
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project includes components with different licenses:
+
+- Counter-Based Sampling: [Your chosen license]
+- CNN DDoS Detection: Based on LUCID framework (Apache License 2.0)
+
+## Acknowledgments
+
+- Original LUCID framework by Roberto Doriguzzi-Corin et al.
+- Research paper: "Lucid: A Practical, Lightweight Deep Learning Solution for DDoS Attack Detection" (IEEE TNSM 2020)
+
+## Contact
+
+[Your Name] - [Your Email]
+
+Project Link: [Your GitHub Repository URL]
