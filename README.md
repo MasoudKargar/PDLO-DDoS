@@ -213,4 +213,3 @@ This project includes components with different licenses:
 - Original LUCID framework by Roberto Doriguzzi-Corin et al.
 - Research paper: "Lucid: A Practical, Lightweight Deep Learning Solution for DDoS Attack Detection" (IEEE TNSM 2020)
 
-Project Link: [Your GitHub Repository URL]
