@@ -1,215 +1,149 @@
-# DDoS Detection with Counter-Based Sampling and CNN
+# PDLO-DDoS: Probabilistic Data Lifespan Optimization for Edge-Assisted IoT DDoS Detection
 
-This repository contains a two-part project for DDoS attack detection combining data preprocessing through counter-based sampling and deep learning classification using a CNN model.
+Code for the paper **"A lightweight convolutional framework using probabilistic data lifespan optimization for edge-assisted IoT DDoS detection"** (submitted to *Scientific Reports*).
 
-## Project Overview
+PDLO reduces the volume of network traffic before training a small CNN. Packets are grouped by flow (source IP, destination IP, protocol) and a fraction gamma of each flow is kept, so that high-volume floods are pruned while low-frequency flows stay represented. The name "lifespan" refers to how much of each flow is retained. The method uses packet counts only, not timestamps or packet age, so it is a frequency-based flow sampling scheme.
 
-The project consists of two main components:
+## Pipeline
 
-1. **Counter-Based Sampling**: A preprocessing tool that intelligently samples network packets from PCAP files to create balanced datasets
-2. **CNN DDoS Detection**: A lightweight CNN-based deep learning solution for DDoS attack detection (based on LUCID framework)
+1. **Stage 1, counter-based flow sampling** (`counter_based_sampling/counter_based_sampling.py`)
+2. **Stage 2, preprocessing** (`cnn_ddos_detection/lucid_dataset_parser.py`): 10 s windows, 11 per-packet features, 10 x 11 matrices
+3. **Stage 3, flow-aware 80/10/10 split** (same parser, `--preprocess_folder` step)
+4. **Stage 4/5, training and test** (`cnn_ddos_detection/lucid_cnn.py`): grid search, early stopping, test metrics, FLOPs, latency
 
-## Project Structure
+## Repository structure
 
 ```
-├── Counter-Based Sampling/          # Part 1: Data preprocessing
-│   └── Counter-Based Sampling.py   # Main sampling algorithm
-├── CNN_DDoS_detection/             # Part 2: CNN-based detection
-│   ├── lucid_cnn.py               # Main CNN model implementation
-│   ├── lucid_dataset_parser.py    # Dataset parsing utilities
-│   ├── util_functions.py          # Utility functions
-│   ├── README.md                  # Original LUCID documentation
-│   ├── sample-dataset/            # Sample data directory
-│   └── output/                    # Model outputs and results
-├── README.md                      # This file
-├── requirements.txt               # Python dependencies
-└── .gitignore                    # Git ignore rules
+├── counter_based_sampling/
+│   └── counter_based_sampling.py    # Stage 1
+├── cnn_ddos_detection/
+│   ├── lucid_cnn.py                 # model, grid search, training, testing
+│   ├── lucid_dataset_parser.py      # Stages 2 and 3
+│   ├── util_functions.py
+│   ├── README.md                    # original LUCID documentation
+│   ├── sample-dataset/
+│   └── output/
+├── requirements.txt
+├── LICENSE
+├── CITATION.cff
+└── README.md
 ```
 
-## Part 1: Counter-Based Sampling
+## Stage 1: counter-based flow sampling
 
-### Overview
+For each pcap file, packets are grouped by the key (source IP, destination IP, protocol). With N(k) packets in flow k, the number kept is
 
-The Counter-Based Sampling component provides an intelligent method to reduce the size of large PCAP files while maintaining the statistical properties and balance of the original dataset. This is crucial for creating manageable datasets for machine learning training.
+```
+R(k) = min( N(k), max( floor(N(k) * gamma), m ) ),   m = 100
+```
 
-### Features
-
-- **Balanced Sampling**: Maintains representation of different traffic patterns
-- **Flow-based Grouping**: Groups packets by (source IP, destination IP, protocol) tuples
-- **Configurable Ratios**: Supports multiple sampling ratios (5% to 95%)
-- **Minimum Guarantees**: Ensures minimum representation per traffic pattern
+- gamma is in [0.05, 0.95]. Flows with at most 100 packets are kept in full at every gamma.
+- If the per-flow pass keeps fewer than floor(gamma * total packets), extra packets are drawn uniformly at random from the unselected ones until that total is reached. So gamma is the minimum fraction retained, not the exact fraction.
+- Sampling within a flow is uniform without replacement (`random.sample`).
+- Each pcap file is sampled independently. Packets without an IP header are not assigned to a flow and can only be kept by the fill-up step.
+- **The random generator is not seeded, so Stage 1 output is not exactly reproducible.**
 
 ### Usage
 
-```python
-# Example usage
-from Counter-Based Sampling import reduce_pcap_balanced, process_folder
-
-# Process a single PCAP file
-reduce_pcap_balanced('input.pcap', 'output.pcap', keep_ratio=0.1, min_per_key=100)
-
-# Process all PCAP files in a folder
-process_folder('./pcap_files/')
-```
-
-### Algorithm Details
-
-1. **Key Extraction**: Extracts (src_ip, dst_ip, protocol) from each packet
-2. **Pattern Counting**: Groups packets by their keys and counts occurrences
-3. **Balanced Sampling**: Samples from each group proportionally
-4. **Gap Filling**: Adds additional packets if needed to reach target ratio
-
-## Part 2: CNN DDoS Detection (LUCID-based)
-
-### Overview
-
-This component implements a lightweight Convolutional Neural Network for DDoS attack detection. It's based on the LUCID framework but has been adapted for new datasets and includes additional features.
-
-### Features
-
-- **Lightweight CNN Architecture**: Optimized for resource-constrained environments
-- **Multiple Dataset Support**: Compatible with various DDoS datasets
-- **Performance Metrics**: Comprehensive evaluation including FLOPs calculation
-- **Hyperparameter Tuning**: Grid search and randomized search capabilities
-- **Visualization**: Training progress and performance plots
-
-### Key Components
-
-- `lucid_cnn.py`: Main CNN model implementation and training
-- `lucid_dataset_parser.py`: Dataset preprocessing and parsing utilities
-- `util_functions.py`: Helper functions for data processing and evaluation
-
-### Model Architecture
-
-The CNN model includes:
-
-- Convolutional layers for feature extraction
-- Global max pooling for dimensionality reduction
-- Dense layers for classification
-- Dropout for regularization
-
-## Installation
-
-### Prerequisites
-
-- Python 3.9 or higher
-- NVIDIA GPU (optional but recommended for faster training)
-
-### Environment Setup
-
-1. Clone this repository:
-
 ```bash
-git clone <your-repo-url>
-cd <repo-name>
+cd counter_based_sampling
+# edit folder_path in counter_based_sampling.py, then:
+python counter_based_sampling.py
 ```
 
-2. Create a virtual environment:
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Additional Requirements
-
-For PCAP processing, you may need to install additional system dependencies:
-
-- **Linux/Mac**: `sudo apt-get install tshark` or `brew install wireshark`
-- **Windows**: Install Wireshark from the official website
-
-## Usage Guide
-
-### Step 1: Data Preprocessing (Counter-Based Sampling)
+Or from Python:
 
 ```python
-# Navigate to Counter-Based Sampling directory
-cd "Counter-Based Sampling"
+from counter_based_sampling import reduce_pcap_balanced, process_folder
 
-# Modify the folder path in the script
-# Edit Counter-Based Sampling.py and change:
-# folder_path = "./XXX"  # Replace with your PCAP folder path
-
-python "Counter-Based Sampling.py"
+reduce_pcap_balanced("input.pcap", "output.pcap", keep_ratio=0.1, min_per_key=100)
+process_folder("./pcap_files/")
 ```
 
-### Step 2: Dataset Preparation for CNN
+## Stages 2 and 3: preprocessing and split
 
-```python
-# Navigate to CNN directory
-cd CNN_DDoS_detection
+Settings used in the paper for all three datasets:
 
-# Parse your dataset (first step)
-python lucid_dataset_parser.py --dataset_type CUSTOM --dataset_folder ./your-data/ --packets_per_flow 10 --dataset_id YOUR_DATASET --traffic_type all --time_window 10
+- Sub-flows are keyed by the bidirectional 5-tuple (source IP, source port, destination IP, destination port, protocol).
+- Time window t = 10 s. Windows are global within a pcap file. There is no early termination on TCP FIN/RST and no idle timeout.
+- Sequence length n = 10 packets. Longer sub-flows are truncated, shorter ones are zero-padded (padding is not masked).
+- 11 per-packet header features: relative timestamp, packet length, highest protocol layer, IP flags, protocol bitmask, TCP length, TCP acknowledgment number, TCP flags, TCP window size, UDP length, ICMP type. Features are Min-Max scaled with fixed nominal bounds, so no statistic comes from the validation or test data.
+- Labels come from a fixed list of attacker and victim IPs per dataset.
+- Benign and DDoS flows are balanced towards 1:1, then whole flows are assigned to train, validation and test in an 80:10:10 ratio. The split is not class-stratified. Fixed seed 1.
 
-# Preprocess the parsed data (second step)
+```bash
+cd cnn_ddos_detection
+python lucid_dataset_parser.py --dataset_type CUSTOM --dataset_folder ./your-data/ \
+    --packets_per_flow 10 --dataset_id YOUR_DATASET --traffic_type all --time_window 10
 python lucid_dataset_parser.py --preprocess_folder ./your-data/
 ```
 
-### Step 3: Train the CNN Model
+## Stage 4 and 5: model and training
 
-```python
-# Train the model
-python lucid_cnn.py
+The model (LDCNN) is a single convolutional layer followed by global max pooling and one sigmoid unit:
+
+- Input: 10 x 11 matrix, reshaped to 10 x 11 x 1
+- `Conv2D` with k filters and a 3 x 11 kernel (equivalent to a 1D convolution of length 3 over 11 channels), L1 or L2 kernel regularizer (strength 0.01)
+- Dropout (applied before ReLU), then ReLU
+- Global max pooling
+- `Dense(1, sigmoid)`, threshold 0.5
+
+Hyperparameter grid (252 configurations), same for all datasets and retention levels:
+
+| Parameter | Values |
+| --- | --- |
+| Filters k | 1, 2, 4, 8, 16, 32, 64 |
+| Dropout | 0.2, 0.3, 0.4 |
+| Batch size | 1024, 2048 |
+| Regularization | L1, L2 |
+| Learning rate | 0.001, 0.01, 0.1 |
+
+Each configuration is scored by 2-fold cross-validation accuracy on the training set (`GridSearchCV`). The best one is refitted on the training set with Adam, binary cross-entropy, at most 50 epochs, and early stopping on validation loss (patience 10, best weights restored). Python, NumPy and TensorFlow are seeded with 1.
+
+```bash
+python lucid_cnn.py   # add the exact arguments used for training and testing
 ```
 
-## Configuration
+## Full-data baseline (LUCID)
 
-### Counter-Based Sampling Parameters
+LUCID (Doriguzzi-Corin et al., IEEE TNSM 2020) uses the same layer structure as the LDCNN. In the paper it is trained and tested on 100% of each dataset on the same machine, so it serves as the same CNN without Stage 1 sampling. Preprocessing, batch size and hyperparameters may differ from the PDLO runs.
 
-- `keep_ratio`: Percentage of packets to keep (0.05 to 0.95)
-- `min_per_key`: Minimum packets per traffic pattern (default: 100)
+## Installation
 
-### CNN Model Parameters
+Tested with Python 3.9+ and TensorFlow 2.12. A GPU is optional.
 
-- `PATIENCE`: Early stopping patience (default: 10)
-- `DEFAULT_EPOCHS`: Maximum training epochs (default: 50)
-- `hyperparamters`: Dictionary containing hyperparameter ranges for tuning
+```bash
+git clone https://github.com/MasoudKargar/PDLO-DDoS.git
+cd PDLO-DDoS
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Performance Metrics
+Pcap parsing needs `tshark`: `sudo apt-get install tshark` (Linux), `brew install wireshark` (macOS), or Wireshark for Windows.
 
-The system provides comprehensive evaluation metrics:
+## Datasets
 
-- **Accuracy**: Overall classification accuracy
-- **F1-Score**: Balanced measure of precision and recall
-- **TPR/FPR**: True/False Positive Rates
-- **TNR/FNR**: True/False Negative Rates
-- **FLOPs**: Computational complexity measurement
-- **Inference Time**: Average prediction time per sample
+| Dataset | Source |
+| --- | --- |
+| CIC-DDoS2019 | https://www.unb.ca/cic/datasets/ddos-2019.html |
+| Edge-IIoT Cyber Security | https://www.kaggle.com/datasets/mohamedamineferrag/edgeiiotset-cyber-security-dataset-of-iot-iiot |
+| CoAP-DDoS | https://www.kaggle.com/jaredalanmathews/coapddos |
 
-## Dataset Support
+The datasets are not redistributed here.
 
-The system supports various DDoS datasets:
+## Reported metrics
 
-- CIC-IDS2017
-- CIC-IDS2018
-- SYN2020
-- DOS2019
-- Custom datasets
+Accuracy, F1, TPR, FPR, TNR, FNR, FLOPs, and inference time per sample. Timings in the paper were measured on a laptop (AMD Ryzen 7 5800H, 16 GB RAM, NVIDIA RTX 3050 Ti), not on physical edge hardware.
 
-## Contributing
+## Citation
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See `CITATION.cff`. If you use this code, please cite the paper and the Zenodo archive.
 
 ## License
 
-This project includes components with different licenses:
-
-- Counter-Based Sampling: [Your chosen license]
-- CNN DDoS Detection: Based on LUCID framework (Apache License 2.0)
+Counter-based sampling and PDLO code: ADD LICENSE (for example MIT). The CNN code is derived from LUCID and keeps its Apache License 2.0.
 
 ## Acknowledgments
 
-- Original LUCID framework by Roberto Doriguzzi-Corin et al.
-- Research paper: "Lucid: A Practical, Lightweight Deep Learning Solution for DDoS Attack Detection" (IEEE TNSM 2020)
-
+Based on LUCID: R. Doriguzzi-Corin, S. Millar, S. Scott-Hayward, J. Martinez-del-Rincon, D. Siracusa, "Lucid: A Practical, Lightweight Deep Learning Solution for DDoS Attack Detection," IEEE TNSM, vol. 17, pp. 876-889, 2020.
