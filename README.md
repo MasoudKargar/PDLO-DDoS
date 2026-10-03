@@ -128,7 +128,7 @@ Pcap parsing needs `tshark`: `sudo apt-get install tshark` (Linux), `brew instal
 | --- | --- |
 | CIC-DDoS2019 | https://www.unb.ca/cic/datasets/ddos-2019.html |
 | Edge-IIoT Cyber Security | https://www.kaggle.com/datasets/mohamedamineferrag/edgeiiotset-cyber-security-dataset-of-iot-iiot |
-| CoAP-DDoS | https://www.kaggle.com/jaredalanmathews/coapddos |
+| CoAP-DDoS | Kaggle Repository |
 
 The datasets are not redistributed here.
 
