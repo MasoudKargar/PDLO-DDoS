@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "PDLO-DDoS: Probabilistic Data Lifespan Optimization for Edge-Assisted IoT DDoS Detection"
+type: software
+version: "1.0.0"
+doi: 10.5281/zenodo.23947628
+date-released: "2026-11-04"
+repository-code: "https://github.com/MasoudKargar/PDLO-DDoS"
+license: MIT
+abstract: "Code for counter-based flow sampling, preprocessing and a lightweight single-layer CNN (LDCNN) for DDoS detection on IoT traffic."
+keywords:
+  - DDoS detection
+  - IoT
+  - edge computing
+  - convolutional neural network
+  - probabilistic sampling
+authors:
+  - family-names: Hassanzadeh
+    given-names: Poorya
+    affiliation: "Islamic Azad University, Tabriz Branch, Iran"
+  - family-names: Kargar
+    given-names: Masoud
+    affiliation: "Islamic Azad University, Tabriz Branch, Iran"
+  - family-names: Mohajer
+    given-names: Amin
+    affiliation: "The University of British Columbia, Canada"
+  - family-names: Mirzaei
+    given-names: Abbas
+    affiliation: "Islamic Azad University, Ardabil Branch, Iran"
+  - family-names: Ghaffari
+    given-names: Ali
+    affiliation: "Istinye University, Turkey"
+  - family-names: Nouri-Moghaddam
+    given-names: Babak
+    affiliation: "Khazar University, Azerbaijan"
+  - family-names: Fernando
+    given-names: Xavier
+    affiliation: "Toronto Metropolitan University, Canada"
