@@ -140,6 +140,8 @@ Accuracy, F1, TPR, FPR, TNR, FNR, FLOPs, and inference time per sample. Timings 
 
 See `CITATION.cff`. If you use this code, please cite the paper and the Zenodo archive.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23947628.svg)](https://doi.org/10.5281/zenodo.23947628)
+
 ## License
 
 Counter-based sampling and PDLO code: ADD LICENSE (for example MIT). The CNN code is derived from LUCID and keeps its Apache License 2.0.
